@@ -46,8 +46,9 @@ export default {
       this.$refs.form.validate(isValid => {
         if (!isValid) return
         axios.post('http://localhost:8888/api/private/v1/login', this.form).then(res => {
-          const { meta } = res.data
+          const { data, meta } = res.data
           if (meta.status === 200) {
+            localStorage.setItem('token', data.token)
             this.$message.success('恭喜，登陆成功')
             this.$router.push({ name: 'index' })
           } else {
@@ -65,7 +66,15 @@ export default {
 </script>
 
 <style lang = 'scss'>
-.login {
+ $bgcolor:#2d434c;
+
+.login{
+  height: 100%;
+  width: 100%;
+  background-color: $bgcolor;
+  overflow: hidden;
+}
+.el-form {
   width: 400px;
   padding: 20px;
   padding-top: 80px;
