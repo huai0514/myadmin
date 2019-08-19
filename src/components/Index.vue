@@ -9,15 +9,13 @@
       </div>
       <div class="logout">
         欢迎光临~
-        <a href="javascript:;">退出</a>
+        <a href="javascript:;" @click="logout">退出</a>
       </div>
     </el-header>
     <el-container>
       <el-aside width="200px">
         <el-menu
           class="el-menu-vertical-demo"
-          @open="handleOpen"
-          @close="handleClose"
           background-color="#545c64"
           text-color="#fff"
           active-text-color="#ffd04b"
@@ -54,7 +52,30 @@
 </template>
 
 <script>
-export default {}
+export default {
+  methods: {
+    logout () {
+      console.log(111)
+      this.$confirm('你确定要退出吗?', '温馨提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.$message({
+          type: 'success',
+          message: '成功退出'
+        })
+        localStorage.removeItem('token')
+        this.$router.push('/login')
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消退出'
+        })
+      })
+    }
+  }
+}
 </script>
 
 <style lang = "scss" scoped>
