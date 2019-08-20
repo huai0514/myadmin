@@ -17,7 +17,6 @@
 </template>
 
 <script>
-import axios from 'axios'
 
 export default {
   data () {
@@ -42,30 +41,31 @@ export default {
     reset () {
       this.$refs.form.resetFields()
     },
-    login () {
-      this.$refs.form.validate(isValid => {
-        if (!isValid) return
-        axios.post('http://localhost:8888/api/private/v1/login', this.form).then(res => {
-          const { data, meta } = res.data
-          if (meta.status === 200) {
-            localStorage.setItem('token', data.token)
-            this.$message.success('恭喜，登陆成功')
-            this.$router.push({ name: 'index' })
-          } else {
-            this.$message({
-              message: '登陆失败！',
-              type: 'error',
-              duraction: 1000
-            })
-          }
-        })
-      })
+    async login () {
+      try {
+        await this.$refs.form.validate()
+        const res = await this.$axios.post('login', this.form)
+        const { data, meta } = res.data
+        if (meta.status === 200) {
+          localStorage.setItem('token', data.token)
+          this.$message.success('恭喜，登陆成功')
+          this.$router.push({ name: 'index' })
+        } else {
+          this.$message({
+            message: '登陆失败！',
+            type: 'error',
+            duraction: 1000
+          })
+        }
+      } catch (e) {
+        console.log(111)
+      }
     }
   }
 }
 </script>
 
-<style lang = 'scss'>
+<style lang = 'scss' scoped>
  $bgcolor:#2d434c;
 
 .login{
