@@ -17,7 +17,7 @@
       <el-table-column prop="username" label="用户名"></el-table-column>
       <el-table-column prop="email" label="邮箱"></el-table-column>
       <el-table-column prop="mobile" label="手机"></el-table-column>
-      <el-table-column  label="用户状态">
+      <el-table-column label="用户状态">
         <template v-slot:default="scope">
           <el-switch
             v-model="scope.row.mg_state"
@@ -27,9 +27,15 @@
           ></el-switch>
         </template>
       </el-table-column>
-      <el-table-column  label="操作">
+      <el-table-column label="操作">
         <template v-slot:default="scope">
-          <el-button type="primary"  @click = "showEditDialog(scope.row)" plain size="small" icon="el-icon-edit"></el-button>
+          <el-button
+            @click="showEditDialog(scope.row)"
+            type="primary"
+            plain
+            size="small"
+            icon="el-icon-edit"
+          ></el-button>
           <el-button
             type="danger"
             plain
@@ -37,7 +43,13 @@
             icon="el-icon-delete"
             @click="deleteUser(scope.row.id)"
           ></el-button>
-          <el-button type="success" plain size="small" icon="el-icon-check">分配角色</el-button>
+          <el-button
+            @click="showAssignDialog(scope.row)"
+            type="success"
+            plain
+            size="small"
+            icon="el-icon-check"
+          >分配角色</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -52,7 +64,7 @@
       :total="total"
     ></el-pagination>
     <!-- 添加模态框 -->
-    <el-dialog title="提示" :visible.sync="dialogVisible" width="50%" @close = closedialog>
+    <el-dialog title="提示" :visible.sync="dialogVisible" width="50%" @close="closedialog">
       <el-form ref="form" :rules="rules" :model="form" label-width="80px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="form.username"></el-input>
@@ -73,9 +85,9 @@
       </span>
     </el-dialog>
     <!-- 修改模态框 -->
-    <el-dialog title="修改用户" :visible.sync="editDialogVisible" width="50%" @close = closeEditDialog>
+    <el-dialog title="修改用户" :visible.sync="editDialogVisible" width="50%" @close="closeEditDialog">
       <el-form ref="editForm" :rules="rules" :model="editForm" label-width="80px">
-        <el-form-item label="用户名" >
+        <el-form-item label="用户名">
           <el-tag type="info">{{editForm.username}}</el-tag>
         </el-form-item>
         <el-form-item label="邮箱" prop="email">
@@ -88,6 +100,33 @@
       <span slot="footer" class="dialog-footer">
         <el-button @click="editDialogVisible = false">取 消</el-button>
         <el-button type="primary" @click="editUser(editForm)">确 定</el-button>
+      </span>
+    </el-dialog>
+    <!-- 分配模态框 -->
+    <el-dialog
+      title="分配角色"
+      :visible.sync="assignDialogVisible"
+      width="50%"
+      @close="closeAssignDialog"
+    >
+      <el-form ref="assignForm" :model="assignForm" label-width="80px">
+        <el-form-item label="用户名">
+          <el-tag type="info">{{assignForm.username}}</el-tag>
+        </el-form-item>
+        <el-form-item label="角色列表">
+          <el-select v-model="assignForm.rid" placeholder="请选择">
+            <el-option
+              v-for="item in options"
+              :key="item.id"
+              :label="item.roleName"
+              :value="item.id"
+            ></el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="editDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="assignUser(assignForm)">分 配</el-button>
       </span>
     </el-dialog>
   </div>
@@ -153,10 +192,19 @@ export default {
         username: '',
         email: '',
         mobile: ''
-      }
+      },
+      assignDialogVisible: false,
+      assignForm: {
+        id: '',
+        username: '',
+        rid: ''
+      },
+      options: [],
+      value: ''
     }
   },
   methods: {
+    // 获取userlist
     async getUsersList () {
       const res = await this.$axios.get('users', {
         params: {
@@ -170,6 +218,7 @@ export default {
       this.data = data.users
       this.total = data.total
     },
+    // 删除用户
     async deleteUser (id) {
       try {
         await this.$confirm('你确定要删除吗？', '温馨提示', {
@@ -191,22 +240,28 @@ export default {
         this.$message('已取消')
       }
     },
+    // 每页条数改变
     handleSizeChange (val) {
       this.pagesize = val
       this.pagenum = 1
       this.getUsersList()
     },
+    // 页码改变
     handleCurrentChange (val) {
       this.pagenum = val
       this.getUsersList()
     },
+    // 搜索
     search () {
       this.pagenum = 1
       this.getUsersList()
       this.query = ''
     },
+    // 修改状态
     async changeState (row) {
-      const res = await this.$axios.put(`users/${row.id}/state/${row.mg_state}`)
+      const res = await this.$axios.put(
+        `users/${row.id}/state/${row.mg_state}`
+      )
       const { meta } = res.data
       if (meta.status === 200) {
         this.$message.success('修改成功')
@@ -214,12 +269,11 @@ export default {
         this.$message.error(meta.msg)
       }
     },
+    // 显示添加模态框
     showmodel () {
       this.dialogVisible = true
     },
-    closedialog () {
-      this.$refs.form.resetFields()
-    },
+    // 添加用户
     async addUser () {
       try {
         await this.$refs.form.validate()
@@ -236,6 +290,11 @@ export default {
         }
       } catch (e) {}
     },
+    // 关闭模态框时重置表单
+    closedialog () {
+      this.$refs.form.resetFields()
+    },
+    // 显示编辑模态框
     showEditDialog (row) {
       this.editDialogVisible = true
       this.editForm.username = row.username
@@ -243,9 +302,7 @@ export default {
       this.editForm.mobile = row.mobile
       this.editForm.id = row.id
     },
-    closeEditDialog () {
-      this.$refs.editForm.resetFields()
-    },
+    // 编辑用户
     async editUser (editForm) {
       try {
         await this.$refs.editForm.validate()
@@ -261,6 +318,57 @@ export default {
       } catch (e) {
         console.log(e)
       }
+    },
+    // 关闭编辑模态框
+    closeEditDialog () {
+      this.$refs.editForm.resetFields()
+    },
+    // 显示分配模态框
+    async showAssignDialog (row) {
+      this.assignDialogVisible = true
+      // 当前角色的数据回显
+      this.assignForm.id = row.id
+      this.assignForm.username = row.username
+      // 根据当前用户id得到当前用户的所属角色id
+      const resUser = await this.$axios.get(`users/${row.id}`)
+      console.log(resUser)
+      if (resUser.data.meta.status === 200) {
+        const rid = resUser.data.data.rid
+        this.assignForm.rid = rid !== -1 ? rid : ''
+      }
+      console.log(this.assignForm.rid)
+
+      // 得到所有角色数据，赋值给下拉框
+      const res = await this.$axios.get('roles')
+      const { data, meta } = res.data
+      if (meta.status === 200) {
+        this.options = data
+      } else {
+        this.$message.error('数据获取失败')
+      }
+    },
+    // 分配角色
+    async assignUser (assignForm) {
+      const { id, rid } = this.assignForm
+      if (rid === '') {
+        this.$message.error('请选择角色')
+        return
+      }
+      const res = await this.$axios.put(`users/${id}/role`, { rid })
+      console.log(res)
+      const { meta } = res.data
+      if (meta.status === 200) {
+        console.log(111)
+        this.assignDialogVisible = false
+        this.$message.success(meta.msg)
+        this.getUsersList()
+      } else {
+        this.$message.success(meta.msg)
+      }
+    },
+    // 关闭分配模态框
+    closeAssignDialog () {
+      this.$refs.assignForm.resetFields()
     }
   }
 }
